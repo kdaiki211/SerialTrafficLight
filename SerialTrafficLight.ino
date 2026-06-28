@@ -101,7 +101,7 @@ void execute_command() {
   if (!is_valid_cmd) {
     Serial.print("Invalid command: ");
     Serial.println(cmd);
-    show_usage();
+    Serial.println("For a list of available commands, type 'help'.");
   }
 }
 
