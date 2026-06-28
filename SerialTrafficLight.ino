@@ -61,12 +61,54 @@ bool read_char() {
   return is_cmd_ready;
 }
 
+void show_usage() {
+  Serial.println("Available commands:\n" \
+                 "  - help\n" \
+                 "  - control [R] [G] [B]\n" \
+                 "    - [R/G/B] on / off\n" \
+                 "  - status");
+}
+
+void control_led() {
+  Serial.println("Not implemented: control_led()");
+}
+
+void show_status() {
+  Serial.println("Not implemented: show_status()");
+}
+
+void execute_command() {
+  bool is_valid_cmd = true;
+  char* cmd = strtok(buf, " ");
+  
+  // コマンドを parse して実行
+  if (cmd == NULL) {
+    is_valid_cmd = false;
+  } else {
+    strlwr(cmd);
+    if (strcmp(cmd, "control") == 0) {
+      control_led();
+    } else if (strcmp(cmd, "status") == 0) {
+      show_status();
+    } else if (strcmp(cmd, "help") == 0) {
+      show_usage();
+    } else {
+      is_valid_cmd = false;
+    }
+  }
+
+  if (!is_valid_cmd) {
+    Serial.print("Invalid command: ");
+    Serial.println(cmd);
+    show_usage();
+  }
+}
+
 void loop() {
   if (Serial.available()) {
     t0 = micros();
     if (read_char()) {
-      Serial.print("Cmd: ");
-      Serial.println(buf);
+      execute_command();
       Serial.flush();
     }
   } else if (micros() - t0 >= rx_idle_timeout_us) {
