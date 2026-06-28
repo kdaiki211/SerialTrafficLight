@@ -39,48 +39,42 @@ uint8_t buf_wptr = 0;
 
 // スリープまでのタイムアウト時間
 constexpr unsigned long rx_idle_timeout_us = 50ul * 1000ul;
+unsigned long t0 = 0ul;
 
 void loop() {
-  auto t0 = micros();
-  while (micros() - t0 < rx_idle_timeout_us) {
-    auto remain = Serial.available();
-    if (remain) {
-      t0 = micros();
+  if (Serial.available()) {
+    t0 = micros();
+    char c = Serial.read();
+    if (c == '\r') return;  // CR は無視
+    if (c == '\n') {
+      c = '\0';
     }
-    while (remain > 0) {
-      char c = Serial.read();
-      if (c == '\r') {
-        continue;
-      } else if (c == '\n') {
-        c = '\0';
-      }
-      buf[buf_wptr++] = c;
-      if (buf_wptr == buf_len - 1) {
-        c = '\0';
-        buf[buf_wptr] = c;
-      }
-      if (c == '\0') {
-        Serial.print("Cmd: ");
-        Serial.println(buf);
-        Serial.flush();
-        buf[0] = '\0';
-        buf_wptr = 0;
-      }
-      remain--;
+    buf[buf_wptr++] = c;
+    if (buf_wptr == buf_len - 1) {
+      c = '\0';
+      buf[buf_wptr] = c;
     }
+    if (c == '\0') {
+      Serial.print("Cmd: ");
+      Serial.println(buf);
+      Serial.flush();
+      buf[0] = '\0';
+      buf_wptr = 0;
+    }
+  } else if (micros() - t0 >= rx_idle_timeout_us) {
+    // スリープへ突入
+    Serial.println("Going to sleep...");
+    Serial.flush();
+    USART0.CTRLB |= USART_SFDEN_bm;  // SFD (Start Frame Detection) 有効化
+    sleep_enable();
+    sleep_cpu();
+
+    // スリープから復帰: 復帰後は Serial の受信文字が 4 文字程度欠けることに注意。送信側が \n\n\n\n (無害な文字列) に続いてコマンドを入力する必要がある
+    sleep_disable();
+    USART0.CTRLB &= ~USART_SFDEN_bm;  // SFD 無効化
+    USART0.STATUS = USART_RXSIF_bm;   // USART Receive Start Interrupt Flag クリア (RW1C)
+
+    Serial.println("Woke up.");
+    t0 = micros();
   }
-
-  // スリープへ突入
-  Serial.println("Going to sleep...");
-  Serial.flush();
-  USART0.CTRLB |= USART_SFDEN_bm; // SFD (Start Frame Detection) 有効化
-  sleep_enable();
-  sleep_cpu();
-
-  // スリープから復帰: 復帰後は Serial の受信文字が 4 文字程度欠けることに注意。送信側が \n\n\n\n (無害な文字列) に続いてコマンドを入力する必要がある
-  sleep_disable();
-  USART0.CTRLB &= ~USART_SFDEN_bm; // SFD 無効化
-  USART0.STATUS = USART_RXSIF_bm; // USART Receive Start Interrupt Flag クリア (RW1C)
-
-  Serial.println("Woke up.");
 }
