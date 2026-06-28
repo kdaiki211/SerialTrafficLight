@@ -105,27 +105,31 @@ void execute_command() {
   }
 }
 
+void sleep() {
+  // スリープへ突入
+  verbose && Serial.println("Going to sleep...");
+  Serial.flush();
+  USART0.CTRLB |= USART_SFDEN_bm;  // SFD (Start Frame Detection) 有効化
+  sleep_enable();
+  sleep_cpu();
+
+  // スリープから復帰: 復帰後は Serial の受信文字が 4 文字程度欠けることに注意。送信側が \n\n\n\n (無害な文字列) に続いてコマンドを入力する必要がある
+  sleep_disable();
+  USART0.CTRLB &= ~USART_SFDEN_bm;  // SFD 無効化
+  USART0.STATUS = USART_RXSIF_bm;   // USART Receive Start Interrupt Flag クリア (RW1C)
+
+  verbose && Serial.println("Woke up.");
+}
+
 void loop() {
   if (Serial.available()) {
-    t0 = micros();
     if (read_char()) {
       execute_command();
       Serial.flush();
     }
+    t0 = micros();
   } else if (micros() - t0 >= rx_idle_timeout_us) {
-    // スリープへ突入
-    verbose && Serial.println("Going to sleep...");
-    Serial.flush();
-    USART0.CTRLB |= USART_SFDEN_bm;  // SFD (Start Frame Detection) 有効化
-    sleep_enable();
-    sleep_cpu();
-
-    // スリープから復帰: 復帰後は Serial の受信文字が 4 文字程度欠けることに注意。送信側が \n\n\n\n (無害な文字列) に続いてコマンドを入力する必要がある
-    sleep_disable();
-    USART0.CTRLB &= ~USART_SFDEN_bm;  // SFD 無効化
-    USART0.STATUS = USART_RXSIF_bm;   // USART Receive Start Interrupt Flag クリア (RW1C)
-
-    verbose && Serial.println("Woke up.");
+    sleep();
     t0 = micros();
   }
 }
