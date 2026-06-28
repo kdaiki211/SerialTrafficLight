@@ -44,7 +44,7 @@ unsigned long t0 = 0ul;
 
 bool read_char() {
   bool is_cmd_ready = false;
-  char c = Serial.read();
+  const char c = Serial.read();
   if (c == '\r') {
     return false; // CR は無視
   } else if (c == '\n' || c == '\0') {
