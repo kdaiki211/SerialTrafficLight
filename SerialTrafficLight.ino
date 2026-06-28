@@ -23,9 +23,20 @@
 constexpr long baud_rate = 115200;
 constexpr bool verbose = false;
 
+constexpr pin_size_t pin_r = 2;
+constexpr pin_size_t pin_g = 3;
+constexpr pin_size_t pin_b = 4;
+constexpr uint8_t led_off = LOW;
+constexpr uint8_t led_on  = HIGH;
+
 void setup() {
   Serial.begin(baud_rate);
   set_sleep_mode(SLEEP_MODE_STANDBY);
+
+  // LED 用の pin
+  pinMode(pin_r, OUTPUT);
+  pinMode(pin_g, OUTPUT);
+  pinMode(pin_b, OUTPUT);
 
 #ifdef ENABLE_OSCHF_RUNSTDBY_FOR_STABILITY
   uint8_t current_oschfctrla = CLKCTRL.OSCHFCTRLA;
@@ -34,9 +45,10 @@ void setup() {
 }
 
 // シリアル受信バッファ
-constexpr uint8_t buf_len = 16;
+constexpr uint8_t buf_len = 32;
 char buf[buf_len];
 uint8_t buf_wptr = 0;
+const char* arg_delimiter = " ";
 
 // スリープまでのタイムアウト時間
 constexpr unsigned long rx_idle_timeout_us = 50ul * 1000ul;
@@ -70,17 +82,38 @@ void show_usage() {
                  "  - status");
 }
 
-void control_led() {
-  Serial.println("Not implemented: control_led()");
+void control_led(const bool r, const bool g, const bool b) {
+  digitalWrite(pin_r, r ? led_on : led_off);
+  digitalWrite(pin_g, g ? led_on : led_off);
+  digitalWrite(pin_b, b ? led_on : led_off);
+  Serial.println("control_led() done.");
 }
 
 void show_status() {
   Serial.println("Not implemented: show_status()");
 }
 
+bool parse_on_off(bool& result) {
+  char* arg = strtok(NULL, arg_delimiter);
+  strlwr(arg);
+  if (strcmp(arg, "on") == 0) {
+    result = true;
+    return true;
+  } else if (strcmp(arg, "off") == 0) {
+    result = false;
+    return true;
+  }
+  return false;
+}
+
 void execute_command() {
   bool is_valid_cmd = true;
-  char* cmd = strtok(buf, " ");
+  bool is_valid_arg = true;
+
+  // strtok に渡したバッファは書き換えられるため buf のコピーを用意
+  char buf_copy[buf_len];
+  strcpy(buf_copy, buf);
+  char* cmd = strtok(buf_copy, arg_delimiter);
   
   // コマンドを parse して実行
   if (cmd == NULL) {
@@ -88,7 +121,13 @@ void execute_command() {
   } else {
     strlwr(cmd);
     if (strcmp(cmd, "control") == 0) {
-      control_led();
+      bool r, g, b;
+      is_valid_arg &= parse_on_off(r);
+      is_valid_arg &= parse_on_off(g);
+      is_valid_arg &= parse_on_off(b);
+      if (is_valid_arg) {
+        control_led(r, g, b);
+      }
     } else if (strcmp(cmd, "status") == 0) {
       show_status();
     } else if (strcmp(cmd, "help") == 0) {
@@ -98,9 +137,9 @@ void execute_command() {
     }
   }
 
-  if (!is_valid_cmd) {
-    Serial.print("Invalid command: ");
-    Serial.println(cmd);
+  if (!is_valid_cmd || !is_valid_arg) {
+    Serial.print("Invalid command or argument: ");
+    Serial.println(buf);
     Serial.println("For a list of available commands, type 'help'.");
   }
 }
