@@ -21,6 +21,7 @@
 #endif
 
 constexpr long baud_rate = 115200;
+constexpr bool verbose = false;
 
 void setup() {
   Serial.begin(baud_rate);
@@ -113,7 +114,7 @@ void loop() {
     }
   } else if (micros() - t0 >= rx_idle_timeout_us) {
     // スリープへ突入
-    Serial.println("Going to sleep...");
+    verbose && Serial.println("Going to sleep...");
     Serial.flush();
     USART0.CTRLB |= USART_SFDEN_bm;  // SFD (Start Frame Detection) 有効化
     sleep_enable();
@@ -124,7 +125,8 @@ void loop() {
     USART0.CTRLB &= ~USART_SFDEN_bm;  // SFD 無効化
     USART0.STATUS = USART_RXSIF_bm;   // USART Receive Start Interrupt Flag クリア (RW1C)
 
-    Serial.println("Woke up.");
+    verbose && Serial.println("Woke up.");
     t0 = micros();
   }
 }
+ 
