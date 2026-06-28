@@ -58,7 +58,6 @@ void loop() {
       Serial.print("Cmd: ");
       Serial.println(buf);
       Serial.flush();
-      buf[0] = '\0';
       buf_wptr = 0;
     }
   } else if (micros() - t0 >= rx_idle_timeout_us) {
