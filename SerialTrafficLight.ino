@@ -41,24 +41,33 @@ uint8_t buf_wptr = 0;
 constexpr unsigned long rx_idle_timeout_us = 50ul * 1000ul;
 unsigned long t0 = 0ul;
 
+bool read_char() {
+  bool is_cmd_ready = false;
+  char c = Serial.read();
+  if (c == '\r') {
+    return false; // CR は無視
+  } else if (c == '\n' || c == '\0') {
+    is_cmd_ready = true;
+  } else {
+    buf[buf_wptr++] = c;
+    if (buf_wptr == buf_len - 1) {
+      is_cmd_ready = true;
+    }
+  }
+  if (is_cmd_ready) {
+    buf[buf_wptr] = '\0';
+    buf_wptr = 0;
+  }
+  return is_cmd_ready;
+}
+
 void loop() {
   if (Serial.available()) {
     t0 = micros();
-    char c = Serial.read();
-    if (c == '\r') return;  // CR は無視
-    if (c == '\n') {
-      c = '\0';
-    }
-    buf[buf_wptr++] = c;
-    if (buf_wptr == buf_len - 1) {
-      c = '\0';
-      buf[buf_wptr] = c;
-    }
-    if (c == '\0') {
+    if (read_char()) {
       Serial.print("Cmd: ");
       Serial.println(buf);
       Serial.flush();
-      buf_wptr = 0;
     }
   } else if (micros() - t0 >= rx_idle_timeout_us) {
     // スリープへ突入
