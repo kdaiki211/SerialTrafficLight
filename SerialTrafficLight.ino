@@ -24,7 +24,7 @@ constexpr long baud_rate = 115200;
 constexpr bool verbose = false;
 
 constexpr pin_size_t pin_r = 2;
-constexpr pin_size_t pin_g = 3;
+constexpr pin_size_t pin_y = 3;
 constexpr pin_size_t pin_b = 4;
 constexpr uint8_t led_off = LOW;
 constexpr uint8_t led_on  = HIGH;
@@ -35,7 +35,7 @@ void setup() {
 
   // LED 用の pin
   pinMode(pin_r, OUTPUT);
-  pinMode(pin_g, OUTPUT);
+  pinMode(pin_y, OUTPUT);
   pinMode(pin_b, OUTPUT);
 
 #ifdef ENABLE_OSCHF_RUNSTDBY_FOR_STABILITY
@@ -77,14 +77,14 @@ bool read_char() {
 void show_usage() {
   Serial.println("Available commands:\n" \
                  "  - help\n" \
-                 "  - control [R] [G] [B]\n" \
-                 "    - [R/G/B] on / off\n" \
+                 "  - control [red] [yellow] [blue]\n" \
+                 "    - [red/yellow/blue] on / off\n" \
                  "  - status");
 }
 
-void control_led(const bool r, const bool g, const bool b) {
+void control_led(const bool r, const bool y, const bool b) {
   digitalWrite(pin_r, r ? led_on : led_off);
-  digitalWrite(pin_g, g ? led_on : led_off);
+  digitalWrite(pin_y, y ? led_on : led_off);
   digitalWrite(pin_b, b ? led_on : led_off);
   Serial.println("control_led() done.");
 }
@@ -121,12 +121,12 @@ void execute_command() {
   } else {
     strlwr(cmd);
     if (strcmp(cmd, "control") == 0) {
-      bool r, g, b;
+      bool r, y, b;
       is_valid_arg &= parse_on_off(r);
-      is_valid_arg &= parse_on_off(g);
+      is_valid_arg &= parse_on_off(y);
       is_valid_arg &= parse_on_off(b);
       if (is_valid_arg) {
-        control_led(r, g, b);
+        control_led(r, y, b);
       }
     } else if (strcmp(cmd, "status") == 0) {
       show_status();
