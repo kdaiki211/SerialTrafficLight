@@ -116,9 +116,7 @@ void execute_command() {
   char* cmd = strtok(buf_copy, arg_delimiter);
   
   // コマンドを parse して実行
-  if (cmd == NULL) {
-    is_valid_cmd = false;
-  } else {
+  if (cmd) {
     strlwr(cmd);
     if (strcmp(cmd, "control") == 0) {
       bool r, y, b;
